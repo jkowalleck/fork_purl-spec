@@ -4,12 +4,12 @@ A PURL string adheres to the following grammar,
 using syntax as per [RFC5234: Augmented BNF for Syntax Specifications: ABNF](https://datatracker.ietf.org/doc/html/rfc5234).
 
 ```abnf
-purl                      = scheme PERM-COLON *"/" type
+purl                      = scheme ":" *"/" type
                             [ 1*"/" namespace           ] 1*"/" name *"/"
                             [ "@" version ] [ "?" qualifiers           ]
                             [ "#" *"/" subpath      *"/" ]
                             ; leading/trailing slashes allowed here and there
-purl-canonical            = scheme PERM-COLON      type-canonical
+purl-canonical            = scheme ":"      type-canonical
                             [   "/" namespace-canonical ]   "/" name
                             [ "@" version ] [ "?" qualifiers-canonical ]
                             [ "#"      subpath-canonical ]
@@ -80,7 +80,7 @@ PCT-ENCODED = PERM-ALPHANUM
 ; permitted character classes
 PERM-ALPHANUM    = ALPHA / DIGIT
 PERM-PUNCTUATION = "." / "-" / "_" / "~"
-PERM-SEPARATOR   = PERM-COLON / "/" / "@" / "?" / "=" / "&" / "#"
+PERM-SEPARATOR   = ":" / "/" / "@" / "?" / "=" / "&" / "#"
 PERM-COLON       = ":"
 PERM-ESCAPED     = "%" ( PERM-ESCAPED-00-1F
                        / PERM-ESCAPED-20-2C
