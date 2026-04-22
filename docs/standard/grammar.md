@@ -59,6 +59,7 @@ subpath-segment-canonical = [ "." ] subpath-sc *( subpath-sc / "." )
                             ; prevent ".." standalone
 subpath-sc                = PERM-ALPHANUM
                           / "-" / "_" / "~"  ; PERM-PUNCTUATION except "."
+                          / ":"              ; a specific separator that must not be encoded
                           / "%" ( PERM-ESCAPED-00-1F
                                 / PERM-ESCAPED-20-2C
                                 ; except punctuation: "-"     (2D)
