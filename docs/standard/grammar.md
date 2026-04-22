@@ -25,7 +25,7 @@ namespace-canonical       = namespace-segment *(   "/" namespace-segment )
 namespace-segment         = 1*namespace-sc
 namespace-sc              = PERM-ALPHANUM
                           / PERM-PUNCTUATION
-                          / ":"    ; a specific separator that must not be encoded
+                          / ":"
                           / "%" ( PERM-ESCAPED-00-1F
                                 / PERM-ESCAPED-20-2C
                                 ; except punctuation: "-"  (2D)
@@ -59,7 +59,7 @@ subpath-segment-canonical = [ "." ] subpath-sc *( subpath-sc / "." )
                             ; prevent ".." standalone
 subpath-sc                = PERM-ALPHANUM
                           / "-" / "_" / "~"  ; PERM-PUNCTUATION except "."
-                          / ":"              ; a specific separator that must not be encoded
+                          / ":"
                           / "%" ( PERM-ESCAPED-00-1F
                                 / PERM-ESCAPED-20-2C
                                 ; except punctuation: "-"     (2D)
