@@ -4,12 +4,12 @@ A PURL string adheres to the following grammar,
 using syntax as per [RFC5234: Augmented BNF for Syntax Specifications: ABNF](https://datatracker.ietf.org/doc/html/rfc5234).
 
 ```abnf
-purl                      = scheme ":" *"/" type
+purl                      = scheme PERM-COLON *"/" type
                             [ 1*"/" namespace           ] 1*"/" name *"/"
                             [ "@" version ] [ "?" qualifiers           ]
                             [ "#" *"/" subpath      *"/" ]
                             ; leading/trailing slashes allowed here and there
-purl-canonical            = scheme ":"      type-canonical
+purl-canonical            = scheme PERM-COLON      type-canonical
                             [   "/" namespace-canonical ]   "/" name
                             [ "@" version ] [ "?" qualifiers-canonical ]
                             [ "#"      subpath-canonical ]
@@ -25,7 +25,7 @@ namespace-canonical       = namespace-segment *(   "/" namespace-segment )
 namespace-segment         = 1*namespace-sc
 namespace-sc              = PERM-ALPHANUM
                           / PERM-PUNCTUATION
-                          / ":"
+                          / PERM-COLON
                           / "%" ( PERM-ESCAPED-00-1F
                                 / PERM-ESCAPED-20-2C
                                 ; except punctuation: "-"  (2D)
@@ -59,7 +59,7 @@ subpath-segment-canonical = [ "." ] subpath-sc *( subpath-sc / "." )
                             ; prevent ".." standalone
 subpath-sc                = PERM-ALPHANUM
                           / "-" / "_" / "~"  ; PERM-PUNCTUATION except "."
-                          / ":"
+                          / PERM-COLON
                           / "%" ( PERM-ESCAPED-00-1F
                                 / PERM-ESCAPED-20-2C
                                 ; except punctuation: "-"     (2D)
@@ -74,13 +74,14 @@ LOWALPHA    = %x61-7A    ; a-z
 
 PCT-ENCODED = PERM-ALPHANUM
             / PERM-PUNCTUATION
-            / ":"    ; a specific separator that must not be encoded
+            / PERM-COLON    ; a specific separator that must not be encoded
             / PERM-ESCAPED
 
 ; permitted character classes
 PERM-ALPHANUM    = ALPHA / DIGIT
 PERM-PUNCTUATION = "." / "-" / "_" / "~"
-PERM-SEPARATOR   = ":" / "/" / "@" / "?" / "=" / "&" / "#"
+PERM-SEPARATOR   = PERM-COLON / "/" / "@" / "?" / "=" / "&" / "#"
+PERM-COLON       = ":"
 PERM-ESCAPED     = "%" ( PERM-ESCAPED-00-1F
                        / PERM-ESCAPED-20-2C
                        / PERM-ESCAPED-2D-2F
