@@ -2,6 +2,9 @@ from abnf.parser import Rule, ParseError, Node
 import glob
 import json
 
+#run this with python after installing the requirements. 
+# working directory is expected to be the top level of the project
+
 class PurlParser(Rule):
     pass
     
@@ -14,7 +17,6 @@ def make_parser():
         grammar_text = grammar_text[grammar_text.index("```abnf")+7:]
         grammar_text = grammar_text[:grammar_text.index("```")]
         grammar_text = grammar_text.strip()
-        #print(grammar_text)
 
     with open("tmp.grammar", "w") as just_grammar:
         just_grammar.write(grammar_text)
@@ -26,36 +28,74 @@ def load_tests():
     with open(test_location, "r") as test_file:
         test_list=json.load(test_file)["tests"]
     return test_list
-def map_name_to_node(root: Node, current_map: dict): #note currentMap is an outparam
-    current_map[root.name] = root
+def map_name_to_node(root: Node, node_map: dict, value_map: dict): #note currentMap is an outparam
+    node_map[root.name] = root
+    # todo: maybe do something a bit more clever for the qualifiers, which can be multiple
+    value_map[root.name] = root.value
     for child in root.children:
-        map_name_to_node(child, current_map)
+        map_name_to_node(child, node_map, value_map)
 
 def load_schemes():
+    schemes = {}
     types_dir = "types"
     rules_files = glob.glob("types/*.json")
-    # todo
+    for filename in rules_files:
+        with open(filename, "r") as file:
+            scheme = json.load(file)
+            schemes[scheme["type"]] = scheme
+    return schemes
 
-
-def process_result(root: Node) -> bool:
-    node_map = {}
-    map_name_to_node(root, node_map)
-    print(node_map)
+def validate_against_schemes(node_map: dict, value_map: dict, schemes: list):
+    scheme = schemes[value_map["type"]]
+    print("validating : "+value_map["purl"]+" against: "+scheme["type"])
+    if(scheme["repository"]["use_repository"] !=("repository" in value_map)):
+        print("expected value for repository presence was wrong")
+        return False
+    if(scheme["name_definition"]["requirement"]=="required"):
+        if("name" not in value_map):
+            print("expected value for name, and found none")
+            return False
+    if(scheme["namespace_definition"]["requirement"]=="required"):
+        pass # todo
+    # we assume qualifiers are optional
+    provided_qualifiers = []
+    if("qualifiers" in node_map):
+        # validate we are only passed expected qualifiers
+        expected_quals = []
+        for qual in  scheme["qualifiers_definition"]:
+            expected_quals.append(qual["key"])
+        qual_root: Node = node_map.get("qualifiers")
+        for qual_child in qual_root.children:
+            for qual_grandchild in qual_child.children:
+                if(qual_grandchild.name == "qualifier-key"):
+                    provided_qualifiers.append(qual_grandchild.value)
+        for qual in provided_qualifiers:
+            if qual not in expected_quals:
+                print("qualifier unexpected: "+qual)
+                return False
+    print("!!!!!!!!successfully passed validation!!!!!!!!!!!!")
     return True
 
+def process_parse_result(root: Node, schemes: list) -> bool:
+    node_map = {}
+    value_map = {}
+    map_name_to_node(root, node_map, value_map)
+    return validate_against_schemes(node_map, value_map, schemes)
+
 purl_parser = make_parser()
+schemes = load_schemes()
 for test in load_tests():
     success = True
-    print(test["input"])
+    result: Node = None
     try:
         result = purl_parser.parse_all(test["input"])
-        print(result)
-        process_result(result)
     except ParseError as e:
         success = False
     except Exception as e:
         print("other exception: "+str(e))
         success=False
+    if success:
+        success = process_parse_result(result, schemes)
     if test["expected_failure"]:
         continue
 
