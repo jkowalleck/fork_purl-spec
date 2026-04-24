@@ -85,23 +85,37 @@ def process_parse_result(root: Node, schemes: list) -> bool:
 purl_parser = make_parser()
 schemes = load_schemes()
 for test in load_tests():
+    print("\n\n\n~~~~~Preparing for test~~~~~~\n"+json.dumps(test, indent=True))
+    test_input = ""
+    if test["test_type"] == "build":
+        test_input = test["expected_output"]
+        if(test_input is None):
+            print("no purl to build here, moving on "+json.dumps(test,indent=True))
+            continue
+    else:
+        test_input = test["input"]
+    if isinstance(test_input, dict):
+        print("there is a dict for test_input: "+str(test_input)+" skipping test. ")
+        continue
+    print("~~~~~~~~~~Beginning Test~~~~~~\npurl to validate: "+str(test_input)+"\n---")
     success = True
     result: Node = None
     try:
-        result = purl_parser.parse_all(test["input"])
+        result = purl_parser.parse_all(test_input)
     except ParseError as e:
+        print("failed to parse the pURL - parse error: "+str(e))
         success = False
     except Exception as e:
         print("other exception: "+str(e))
-        success=False
+        print("this is unexpected, therefore, this test has failed due to an error with the verifier")
+        print("~~~~~~~~End Test~~~~~~~~~~~")
+        continue
     if success:
         success = process_parse_result(result, schemes)
-    if test["expected_failure"]:
-        continue
 
     if test["expected_failure"] == success:
-        print("~~~~~~~~~~~~~~~~~~~~\ntest did not pass: \n\n"+ json.dumps(test, indent=True))
+        print("test did not pass: "+ test_input)
     else:
-        print("~~~~~~~~~~~~~~~~~~~~\ntest passed: \n\n"+ json.dumps(test, indent=True))
-    
+        print("test passed: "+ test_input)
+    print("~~~~~~~~End Test~~~~~~~~~~~")
 
