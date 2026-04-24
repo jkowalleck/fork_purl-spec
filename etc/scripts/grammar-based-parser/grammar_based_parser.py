@@ -90,7 +90,7 @@ for test in load_tests():
     if test["test_type"] == "build":
         test_input = test["expected_output"]
         if(test_input is None):
-            print("no purl to build here, moving on "+json.dumps(test,indent=True))
+            print("\nno purl to validate here, moving on")
             continue
     else:
         test_input = test["input"]
