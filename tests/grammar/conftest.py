@@ -13,7 +13,6 @@ import json
 import re
 from pathlib import Path
 
-import pytest
 from abnf import Rule
 from abnf.grammars.misc import load_grammar_rules
 
