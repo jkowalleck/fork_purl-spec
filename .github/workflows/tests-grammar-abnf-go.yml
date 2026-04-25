@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: MIT
+# ABNF grammar validation tests — Go ecosystem, github.com/pandatix/go-abnf library
+name: "Tests: ABNF grammar (Go / go-abnf)"
+
+on:
+  push:
+    branches:
+      - "spec/grammar-ABNF"
+      - "tests/grammar-ABNF/**"
+    paths:
+      - "docs/standard/grammar.md"
+      - "tests/**/*.json"
+      - "tests/grammar-ABNF/go/go-abnf/**"
+      - ".github/workflows/tests-grammar-abnf-go.yml"
+  pull_request:
+    branches:
+      - "spec/grammar-ABNF"
+    paths:
+      - "docs/standard/grammar.md"
+      - "tests/**/*.json"
+      - "tests/grammar-ABNF/go/go-abnf/**"
+      - ".github/workflows/tests-grammar-abnf-go.yml"
+
+jobs:
+  test:
+    name: "ABNF grammar validation (Go / github.com/pandatix/go-abnf)"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: tests/grammar-ABNF/go/go-abnf
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: tests/grammar-ABNF/go/go-abnf/go.mod
+          cache-dependency-path: tests/grammar-ABNF/go/go-abnf/go.sum
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Run grammar validation tests
+        run: go test -v -timeout 300s ./...
