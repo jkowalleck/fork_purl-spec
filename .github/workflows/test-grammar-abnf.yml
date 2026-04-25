@@ -1,0 +1,40 @@
+name: ABNF Grammar Tests
+
+on:
+  push:
+    paths:
+      - "docs/standard/grammar.md"
+      - "tests/**/*.json"
+      - "tests/grammar/**"
+      - ".github/workflows/test-grammar-abnf.yml"
+    branches:
+      - "**"
+  pull_request:
+    paths:
+      - "docs/standard/grammar.md"
+      - "tests/**/*.json"
+      - "tests/grammar/**"
+      - ".github/workflows/test-grammar-abnf.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  grammar-tests:
+    name: Validate PURL strings against ABNF grammar
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install dependencies
+        run: pip install -r tests/grammar/requirements.txt
+
+      - name: Run ABNF grammar tests
+        run: python3 -m pytest tests/grammar/ -v --tb=short
