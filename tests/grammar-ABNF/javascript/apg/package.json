@@ -1,0 +1,16 @@
+{
+  "name": "purl-grammar-tests-apg",
+  "version": "1.0.0",
+  "description": "PURL ABNF grammar validation tests using JavaScript/Node.js with apg-js",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "test": "node --test test-purl-grammar.js"
+  },
+  "dependencies": {
+    "apg-js": "^4.4.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
