@@ -83,10 +83,21 @@ PERM-PUNCTUATION = "." / "-" / "_" / "~"
 PERM-SEPARATOR   = ":" / "/" / "@" / "?" / "=" / "&" / "#"
 PERM-COLON       = ":"
 PERM-ESCAPED     = "%" ( PERM-ESCAPED-00-1F
-                       / PERM-ESCAPED-20-2C )
+                       / PERM-ESCAPED-20-2C
+                       / PERM-ESCAPED-2D-2F
+                       / PERM-ESCAPED-30-FF )
 PERM-SPACE       = "%20"    ; escaped space
 
 ; applied purl spec rules for general character encoding
 PERM-ESCAPED-00-1F = %x30-31                               HEXDIG    ; 00-1F
 PERM-ESCAPED-20-2C = %x32             ( DIGIT / "A" / "B" / "C" )    ; 20-2C
+PERM-ESCAPED-2D-2F = %x32                                     "F"    ; 2F
+PERM-ESCAPED-30-FF = %x33         ( "B" / "C" / "D" / "E" / "F" )    ; 3B-3F
+                   / %x34                                    %x30    ; 40
+                   / %x35               ( "B" / "C" / "D" / "E" )    ; 5B-5E
+                   / %x36                                    %x30    ; 60
+                   / %x37                     ( "B" / "C" / "D" )    ; 7B-7D
+                   / %x37                                     "F"    ; 7F
+                   / %x38-39                               HEXDIG    ; 80-9F
+                   / ( "A" / "B" / "C" / "D" / "E" / "F" ) HEXDIG    ; A0-FF
 ```
