@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>io.github.jkowalleck</groupId>
+  <artifactId>purl-grammar-tests-abnf4j</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <name>PURL Grammar Validation Tests (abnf4j / SoftLibABNF)</name>
+  <description>
+    Validates PURL string test values from JSON suites against the ABNF grammar
+    defined in docs/standard/grammar.md, using net.siisise:softlib-abnf.
+  </description>
+
+  <properties>
+    <maven.compiler.release>11</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    <!-- Resolved at runtime; passed by Surefire so tests can locate repo-root paths. -->
+    <repoRoot>${project.basedir}/../../../..</repoRoot>
+  </properties>
+
+  <dependencies>
+    <!-- ABNF parser (RFC 5234) -->
+    <dependency>
+      <groupId>net.siisise</groupId>
+      <artifactId>softlib-abnf</artifactId>
+      <version>1.2.6</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- JSON parsing -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>2.17.2</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- JUnit 5 -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>5.10.2</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+        <configuration>
+          <systemPropertyVariables>
+            <!-- Absolute path to the repo root, so tests can locate grammar.md and test JSON files. -->
+            <repoRoot>${repoRoot}</repoRoot>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
