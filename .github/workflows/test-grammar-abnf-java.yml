@@ -1,4 +1,4 @@
-name: ABNF Grammar Validation Tests (Java)
+name: ABNF TEST Java
 
 on:
   push:
