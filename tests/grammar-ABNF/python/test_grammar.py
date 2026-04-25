@@ -53,7 +53,7 @@ import abnf.parser as _ap
 # ---------------------------------------------------------------------------
 
 
-@staticmethod  # type: ignore[misc]
+@staticmethod  # type: ignore[misc]  # mypy: assigning staticmethod to instance method via monkey-patch
 def _visit_defined_as(node: Node) -> str:
     """Return the defined-as operator (``"="`` or ``"=/"``), ignoring trailing comments."""
     value = node.value.strip()
