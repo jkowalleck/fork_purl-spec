@@ -1,18 +1,8 @@
-name: Grammar ABNF Validation (Java/abnf4j)
+name: ABNF TEST
 
 on:
   push:
-    paths:
-      - "docs/standard/grammar.md"
-      - "tests/**/*.json"
-      - "tests/grammar-ABNF/java/abnf4j/**"
-      - ".github/workflows/grammar-tests-java-abnf4j.yml"
   pull_request:
-    paths:
-      - "docs/standard/grammar.md"
-      - "tests/**/*.json"
-      - "tests/grammar-ABNF/java/abnf4j/**"
-      - ".github/workflows/grammar-tests-java-abnf4j.yml"
   workflow_dispatch:
 
 permissions: {}
