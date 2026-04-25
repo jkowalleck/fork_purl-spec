@@ -1,4 +1,4 @@
-name: Grammar ABNF Tests (Java / apg-java)
+name: "ABNF TESTS - Java / apg-java"
 
 on:
   push:
@@ -7,24 +7,19 @@ on:
       - "tests/**"
       - "tests/grammar/java/apg-java/**"
       - ".github/workflows/grammar-tests-java-apg-java.yml"
-    branches:
-      - "spec/grammar-ABNF"
-      - "tests/grammar-ABNF/**"
   pull_request:
     paths:
       - "docs/standard/grammar.md"
       - "tests/**"
       - "tests/grammar/java/apg-java/**"
       - ".github/workflows/grammar-tests-java-apg-java.yml"
-    branches:
-      - "spec/grammar-ABNF"
   workflow_dispatch:
 
 permissions: {}
 
 jobs:
   grammar-tests-java-apg-java:
-    name: Grammar ABNF Tests (Java / apg-java)
+    name: "ABNF TESTS - Java / apg-java"
     runs-on: ubuntu-latest
     permissions:
       contents: read
