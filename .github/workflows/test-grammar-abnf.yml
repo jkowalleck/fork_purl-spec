@@ -1,4 +1,4 @@
-name: ABNF Grammar Tests
+name: ABNF TEST
 
 on:
   push:
