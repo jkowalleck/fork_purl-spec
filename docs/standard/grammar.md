@@ -91,7 +91,10 @@ PERM-SPACE       = "%20"    ; escaped space
 ; applied purl spec rules for general character encoding
 PERM-ESCAPED-00-1F = %x30-31                               HEXDIG    ; 00-1F
 PERM-ESCAPED-20-2C = %x32             ( DIGIT / "A" / "B" / "C" )    ; 20-2C
+; except punctuation: "-" and "."                                     (2D, 2E)
 PERM-ESCAPED-2D-2F = %x32                                     "F"    ; 2F
+; except alphanumeric: "A"-"Z"  and "a"-"z"               (41-5A) and (61-7A)
+; except punctuation: "_" and "~"                                     (5F, 7E)
 PERM-ESCAPED-30-FF = %x33         ( "B" / "C" / "D" / "E" / "F" )    ; 3B-3F
                    / %x34                                    %x30    ; 40
                    / %x35               ( "B" / "C" / "D" / "E" )    ; 5B-5E
