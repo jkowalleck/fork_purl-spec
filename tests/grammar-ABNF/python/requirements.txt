@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) the purl authors
+# Visit https://github.com/package-url/purl-spec and https://packageurl.org for support
+
+# Runtime dependencies for the ABNF grammar validation tests.
+
+abnf==2.4.1
+pytest>=8,<10
