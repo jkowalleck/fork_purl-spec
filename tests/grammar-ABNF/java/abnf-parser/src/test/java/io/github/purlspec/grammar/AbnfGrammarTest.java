@@ -32,12 +32,12 @@ import static org.junit.jupiter.api.Assumptions.*;
  * <h2>Validation rules</h2>
  * <ul>
  *   <li>{@code $.tests[].input} (string only): validated against rule {@code purl}.
+ *       Only roundtrip tests where {@code input == expected_output} are used
+ *       (i.e. the input is already in canonical form and is guaranteed to satisfy
+ *       the grammar).
  *       When {@code expected_failure == true} the test is <em>skipped</em> (not failed)
  *       if the grammar accepts the input — the ABNF grammar does not model type-specific
- *       constraints.
- *       When {@code expected_failure == false} the test is <em>skipped</em> (not failed)
- *       if the grammar rejects the input — the grammar may be stricter than the purl spec
- *       for some input forms (e.g. unencoded {@code /} in qualifier values).</li>
+ *       constraints.</li>
  *   <li>{@code $.tests[].expected_output} (string only): validated against rule
  *       {@code purl-canonical}. Only checked when {@code expected_failure} is not
  *       {@code true}; always expected to <em>pass</em> (hard assertion).</li>
@@ -109,14 +109,11 @@ public class AbnfGrammarTest {
      * Validate a PURL {@code input} string against the {@code purl} ABNF rule.
      *
      * <ul>
+     *   <li>{@code shouldFail=false} → canonical input; grammar <em>must</em> accept it
+     *       (hard assertion).</li>
      *   <li>{@code shouldFail=true}  → type-specific constraint; grammar may or may not
      *       reject the input (the ABNF grammar does not encode type-specific rules).
      *       The test is <em>skipped</em> (not failed) when the grammar accepts the input.</li>
-     *   <li>{@code shouldFail=false} → grammar should <em>accept</em> the input.
-     *       The test is <em>skipped</em> (not failed) when the grammar rejects the input
-     *       due to known grammar-level strictness (e.g. unencoded {@code /} in qualifier
-     *       values, {@code %3A} for colon in versions, or literal {@code @}/{@code +} in
-     *       names/namespaces) that the grammar spec has not yet relaxed.</li>
      * </ul>
      */
     @ParameterizedTest(name = "{0}")
@@ -133,13 +130,10 @@ public class AbnfGrammarTest {
             assertFalse(matches,
                     "Grammar should have rejected input '" + value + "' for test: " + testId);
         } else {
-            // Grammar should accept valid purls; skip (don't fail) if grammar is stricter.
-            assumeTrue(matches,
-                    "Grammar is stricter than the purl spec for this input form "
-                    + "(known grammar limitation): " + testId);
-            // Grammar accepted it – verify acceptance.
+            // Canonical input: grammar must accept without exception.
             assertTrue(matches,
-                    "Grammar should have accepted input '" + value + "' for test: " + testId);
+                    "Grammar should have accepted canonical input '" + value
+                    + "' for test: " + testId);
         }
     }
 
@@ -221,9 +215,21 @@ public class AbnfGrammarTest {
                 JsonNode inputNode = test.path("input");
                 if (inputNode.isTextual()) {
                     String value  = inputNode.asText();
-                    String baseId = "grammar." + folder + "." + stem + ".input." + value;
-                    String id     = uniqueId(inputIdCount, baseId);
-                    cases.inputArgs.add(Arguments.of(id, value, shouldFail));
+                    if (shouldFail) {
+                        // Type-specific invalids: include all (grammar may or may not reject).
+                        String baseId = "grammar." + folder + "." + stem + ".input." + value;
+                        String id     = uniqueId(inputIdCount, baseId);
+                        cases.inputArgs.add(Arguments.of(id, value, shouldFail));
+                    } else {
+                        // Valid inputs: only include canonical ones (input == expected_output),
+                        // which are guaranteed to satisfy the grammar without workarounds.
+                        JsonNode outputNode = test.path("expected_output");
+                        if (outputNode.isTextual() && value.equals(outputNode.asText())) {
+                            String baseId = "grammar." + folder + "." + stem + ".input." + value;
+                            String id     = uniqueId(inputIdCount, baseId);
+                            cases.inputArgs.add(Arguments.of(id, value, shouldFail));
+                        }
+                    }
                 }
 
                 // ── expected_output validation (only when not expected-to-fail) ──

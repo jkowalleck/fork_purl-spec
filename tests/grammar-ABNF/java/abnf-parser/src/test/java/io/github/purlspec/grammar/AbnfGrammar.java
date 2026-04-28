@@ -21,7 +21,6 @@ import java.util.regex.*;
  * <ul>
  *   <li>Terminal strings: {@code "literal"} (case-insensitive per RFC 5234 §2.3)</li>
  *   <li>Hex values: {@code %xHH}, {@code %xHH.HH} (concatenation), {@code %xHH-HH} (range)</li>
- *   <li>Core rules: {@code ALPHA}, {@code DIGIT}, {@code HEXDIG} (RFC 5234 Appendix B)</li>
  *   <li>Alternation: {@code rule1 / rule2}</li>
  *   <li>Concatenation: space-separated elements</li>
  *   <li>Repetition: {@code *elem}, {@code 1*elem}, {@code n*m elem}</li>
@@ -30,22 +29,11 @@ import java.util.regex.*;
  *   <li>Rule references (case-insensitive lookup)</li>
  *   <li>Comments: {@code ; text to end-of-line}</li>
  * </ul>
+ *
+ * <p>All rules must be defined in the grammar file itself, including
+ * {@code ALPHA}, {@code DIGIT}, and {@code HEXDIG}.
  */
 public class AbnfGrammar {
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Core RFC 5234 Appendix B rules (pre-seeded into the regex cache)
-    // ─────────────────────────────────────────────────────────────────────────
-
-    private static final Map<String, String> CORE_RULES;
-
-    static {
-        Map<String, String> m = new HashMap<>();
-        m.put("alpha",  "[A-Za-z]");
-        m.put("digit",  "[0-9]");
-        m.put("hexdig", "[0-9A-Fa-f]");
-        CORE_RULES = Collections.unmodifiableMap(m);
-    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // State
@@ -54,12 +42,11 @@ public class AbnfGrammar {
     /** Lower-cased rule name → raw rule-body text (continuation lines joined, comments stripped). */
     private final Map<String, String> ruleTexts;
 
-    /** Cache of compiled regex strings (populated lazily; pre-seeded with core rules). */
+    /** Cache of compiled regex strings (populated lazily). */
     private final Map<String, String> regexCache = new HashMap<>();
 
     private AbnfGrammar(Map<String, String> ruleTexts) {
         this.ruleTexts = ruleTexts;
-        regexCache.putAll(CORE_RULES);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
