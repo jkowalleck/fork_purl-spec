@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -153,7 +154,7 @@ public class GrammarValidationTest {
         List<Path> jsonFiles = Files.walk(testsRoot)
             .filter(p -> p.toString().endsWith(".json"))
             .sorted()
-            .toList();
+            .collect(Collectors.toList());
 
         // Track display names for uniqueness
         Map<String, Integer> nameCount = new HashMap<>();
