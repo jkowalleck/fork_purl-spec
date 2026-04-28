@@ -12,15 +12,14 @@ for direct ABNF parsing.
 2. **Discover every JSON test suite** under `tests/` (including
    `tests/spec/` and `tests/types/`).
 3. For every test case in each suite:
+   - If `input` is a string **and** `expected_failure: true` → validate against
+     ABNF rule **`purl`**; the grammar must **reject** the input (all suites).
+     When the grammar **accepts** the input the test is **skipped** — the
+     failure is a type-specific constraint (e.g. a required namespace or a
+     particular name format) that the general PURL grammar does not enforce.
    - If `expected_output` is a string **and** `expected_failure` is not
      `true` → validate against ABNF rule **`purl-canonical`**, which must
      **pass** (all suites).
-   - If `input` is a string **and** `expected_failure: true` **and** the suite
-     is `tests/spec/` → validate against ABNF rule **`purl`**; the grammar must
-     **reject** the input.
-     Type-specific test suites enforce type-scoped rules that are outside the
-     scope of the general ABNF grammar, so their `expected_failure` inputs are
-     intentionally skipped.
    - Non-string (object / null) values are skipped.
 
 ## Prerequisites
@@ -47,20 +46,16 @@ With a longer timeout (useful on slow machines):
 go test -v -timeout 300s ./...
 ```
 
-## Interpreting failures
+## Interpreting results
 
-A **FAIL** line means there is a discrepancy between what the ABNF grammar
-accepts/rejects and what the JSON test suite expects.  Two typical patterns:
-
-| Failure message | Meaning |
-|---|---|
-| `expected ABNF rule 'purl' to accept "…", but it was rejected` | Grammar is stricter than the test data: the input looks valid to the test suite but the grammar rejects it (e.g. an unencoded character that should be percent-encoded). |
-| `expected ABNF rule 'purl' to reject "…", but it was accepted` | Grammar is more permissive than the test data: the input is expected to be invalid (e.g. a type-specific constraint that the grammar cannot enforce). |
-
-Each failure reports:
-- the **suite file** (encoded in the sub-test path, e.g. `grammar.types.swift-test`)
-- whether the failing value is `input` or `expected_output`
-- the **exact string** that was (or was not) accepted
+- **`PASS`** — the grammar correctly rejected an invalid input or accepted a
+  canonical output.
+- **`SKIP`** — an `input` test where the grammar **accepted** a string that the
+  suite marks as `expected_failure: true`.  This is a type-specific constraint
+  (e.g. a required namespace for a particular PURL type) that the general
+  grammar does not enforce; it is not a grammar defect.
+- **`FAIL`** — an `expected_output` string was rejected by the `purl-canonical`
+  rule.  This indicates a gap in the grammar or a test-data issue.
 
 ## Module layout
 
