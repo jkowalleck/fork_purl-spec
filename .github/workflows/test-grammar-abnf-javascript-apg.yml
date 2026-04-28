@@ -1,0 +1,42 @@
+name: "ABNF TEST JavaScript/Node.js apg-js"
+
+on:
+  push:
+    paths:
+      - "docs/standard/grammar.md"
+      - "tests/**/*.json"
+      - "tests/grammar-ABNF/javascript/apg/**"
+      - ".github/workflows/test-grammar-abnf-javascript-apg.yml"
+  pull_request:
+    paths:
+      - "docs/standard/grammar.md"
+      - "tests/**/*.json"
+      - "tests/grammar-ABNF/javascript/apg/**"
+      - ".github/workflows/test-grammar-abnf-javascript-apg.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  test-grammar-abnf-javascript-apg:
+    name: "ABNF grammar tests (JavaScript/Node.js, apg-js)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: tests/grammar-ABNF/javascript/apg/package-lock.json
+
+      - name: Install dependencies
+        working-directory: tests/grammar-ABNF/javascript/apg
+        run: npm ci
+
+      - name: Run ABNF grammar validation tests
+        working-directory: tests/grammar-ABNF/javascript/apg
+        run: npm test

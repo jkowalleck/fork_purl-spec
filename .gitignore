@@ -2,3 +2,4 @@
 /venv/
 /.python-version
 .ruff_cache/
+tests/grammar-ABNF/javascript/apg/node_modules/
