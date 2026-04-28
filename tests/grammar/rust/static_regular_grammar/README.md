@@ -20,12 +20,14 @@ The tests:
    (including `tests/spec/` and `tests/types/`).
 
 3. **Validate** string values:
-   - `input` strings → validated against ABNF rule `purl`
-     - Expected to **fail** when `expected_failure === true`
-     - Expected to **pass** otherwise
+   - `input` strings → validated against ABNF rule `purl` (**informational only**)
+     - Discrepancies between the grammar and the input are expected and never
+       fail the test run — see [Informational discrepancies](#informational-discrepancies)
+       below.
    - `expected_output` strings → validated against ABNF rule `purl-canonical`
+     (**strict**)
      - Only when `expected_failure` is not `true`
-     - Always expected to **pass**
+     - Always expected to **pass** — failures here indicate a real grammar issue
 
 ## Requirements
 
@@ -60,6 +62,12 @@ Run with verbose output to see individual test names:
 cargo test -- --test-threads=1
 ```
 
+View informational discrepancies between the grammar and input strings:
+
+```sh
+cargo test -- --nocapture 2>&1 | grep grammar-informational
+```
+
 Filter tests by name pattern:
 
 ```sh
@@ -88,25 +96,35 @@ Where:
 When the same value appears multiple times within a file, a numeric suffix is
 appended to keep test names unique (e.g. `.1`, `.2`, …).
 
-## Interpreting failures
+## Informational discrepancies
 
-A test failure means the PURL string and the ABNF grammar disagree:
+`input` tests always pass; they print `grammar-informational:` messages to
+stderr when the grammar disagrees with the test-suite expectation.  To view
+these messages:
 
-- **"Expected to PASS but FAILED"** — the JSON test suite marks the string as
-  valid (`expected_failure` is not `true`) but the grammar rejects it.
-  This may indicate a gap in the grammar or a test-data issue (e.g. an input
-  containing unencoded characters that the grammar requires to be
-  percent-encoded).
+```sh
+cargo test -- --nocapture 2>&1 | grep grammar-informational
+```
 
-- **"Expected to FAIL but PASSED"** — the JSON test suite marks the string as
-  invalid (`expected_failure === true`) but the grammar accepts it.
-  This typically means the failure is due to a **type-specific rule** that the
-  general PURL ABNF grammar does not encode (e.g. name-format constraints for
-  a particular package type).
+Two kinds of discrepancy are expected:
 
-Both types of failures are intentional and useful — they reveal discrepancies
-between the general grammar and the test data, which can guide grammar or
-test-suite improvements.
+- **Grammar accepted a type-specifically-invalid PURL** — the JSON test suite
+  marks the input as invalid (`expected_failure === true`) because it violates
+  a **type-specific rule** (e.g. chrome-extension name-format constraints,
+  cpan double-colon notation).  The general PURL grammar does not encode
+  type-specific constraints, so it correctly accepts these structurally valid
+  PURLs.
+
+- **Grammar rejected a loosely-encoded valid PURL** — the JSON test suite marks
+  the input as valid (`expected_failure` is not `true`) but the grammar rejects
+  it.  This happens because `input` strings may use **loose encoding** (e.g.
+  literal `/` or `@` in positions where the grammar requires percent-encoding
+  such as `%2F` or `%40`).  The canonical `expected_output` always uses proper
+  encoding and always passes the grammar.
+
+Both discrepancies are intentional and useful — they reveal gaps between the
+general grammar and real-world PURL usage, and can guide future grammar
+improvements.
 
 ## How it works
 
@@ -134,5 +152,11 @@ accepts a byte slice and returns `Ok` if valid or `Err` if not.
 The custom test harness (using
 [`libtest-mimic`](https://crates.io/crates/libtest-mimic)) walks all JSON
 files under `tests/`, parses them, and builds one `Trial` per test case.
-Each trial validates the relevant string value and reports success or failure
-with an informative message.
+
+- **`input` trials** run grammar validation and always report success.  When
+  the grammar disagrees with the test-suite expectation a `grammar-informational:`
+  message is printed to stderr (visible with `--nocapture`).
+
+- **`expected_output` trials** run grammar validation and **fail** if the
+  canonical PURL string is rejected by `purl-canonical`.  All canonical forms
+  in the test suites are expected to be grammar-valid.
