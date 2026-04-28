@@ -2,8 +2,12 @@
 // Ecosystem: C++ / abnf-cpp (self-contained ABNF parser)
 //
 // Extracts the ABNF grammar from docs/standard/grammar.md, then validates
-// the string values found in JSON test suites under tests/ against the
-// ABNF rules `purl` and `purl-canonical`.
+// the canonical PURL strings found in the expected_output fields of JSON test
+// suites under tests/ against the ABNF rule `purl-canonical`.
+//
+// Only expected_output values (canonical form) are validated; input values
+// are intentionally skipped because they may be non-canonical (lenient parse
+// inputs) or subject to type-specific constraints not expressed in the grammar.
 //
 // Usage:
 //   purl-grammar-tests <grammar.md> <tests-dir>
@@ -698,7 +702,6 @@ static std::vector<TestResult> run_suite(
     if (!suite.contains("tests") || !suite["tests"].is_array()) return results;
 
     // Determine name components:
-    //   grammar.<folder>.<file-base>.input.<value>
     //   grammar.<folder>.<file-base>.expected_output.<value>
     auto rel       = fs::relative(json_path, tests_root);
     auto it        = rel.begin();
@@ -706,8 +709,8 @@ static std::vector<TestResult> run_suite(
     std::string base   = json_path.stem().string();
     std::string prefix = "grammar." + folder + "." + base;
 
-    // Per-value counters to disambiguate duplicate values within one suite.
-    std::map<std::string, int> input_seen, output_seen;
+    // Per-value counter to disambiguate duplicate values within one suite.
+    std::map<std::string, int> output_seen;
 
     for (const auto& test : suite["tests"]) {
         bool expected_failure =
@@ -715,30 +718,11 @@ static std::vector<TestResult> run_suite(
             && test["expected_failure"].is_boolean()
             && test["expected_failure"].get<bool>();
 
-        // ---- input validation ----
-        if (test.contains("input") && test["input"].is_string()) {
-            const std::string val = test["input"].get<std::string>();
-
-            int& cnt = input_seen[val];
-            std::string name = prefix + ".input." + sanitize(val)
-                               + (cnt > 0 ? ("." + std::to_string(cnt)) : "");
-            ++cnt;
-
-            bool matches = validate(grammar, "purl", val);
-
-            TestResult tr;
-            tr.name   = name;
-            tr.passed = expected_failure ? !matches : matches;
-            if (!tr.passed)
-                tr.message = std::string("ABNF rule `purl`: expected ")
-                             + (expected_failure ? "FAIL" : "PASS")
-                             + " but got "
-                             + (matches ? "PASS" : "FAIL")
-                             + " for: " + val;
-            results.push_back(std::move(tr));
-        }
-
-        // ---- expected_output validation (skip when expected_failure) ----
+        // Validate expected_output (canonical form) against purl-canonical.
+        // Input values are intentionally skipped: they may be non-canonical
+        // (e.g. unencoded slashes in qualifier values accepted by lenient
+        // parsers) or subject to type-specific constraints that are not part
+        // of the ABNF grammar.
         if (!expected_failure
             && test.contains("expected_output")
             && test["expected_output"].is_string())
