@@ -47,12 +47,6 @@ import static org.junit.jupiter.api.DynamicTest.dynamicTest;
  * RFC 5234 core rules (ALPHA, DIGIT, HEXDIG) are appended since they are not
  * defined in the purl grammar file but are referenced by it.
  *
- * <p>The {@code purl} and {@code purl-canonical} rules are rewritten for
- * PEG-safe parsing (APG uses PEG ordered-choice semantics), replacing
- * the backtracking-dependent optional-namespace pattern with an equivalent
- * formulation that commits only when a path separator follows a namespace
- * segment.
- *
  * <p>Tests are driven by all {@code tests/**}{@code /*.json} files in the
  * repository, validated against both {@code purl} (inputs) and
  * {@code purl-canonical} (expected_outputs) start rules.
@@ -251,9 +245,8 @@ public class GrammarValidationTest {
     }
 
     /**
-     * Extracts the {@code ```abnf} fenced block from the given Markdown file,
-     * rewrites the {@code purl} and {@code purl-canonical} rules for APG/PEG
-     * compatibility, and appends RFC 5234 core rules.
+     * Extracts the {@code ```abnf} fenced block from the given Markdown file
+     * and appends RFC 5234 core rules.
      */
     static String extractAndAdaptAbnf(Path grammarMd) throws IOException {
         String mdContent = Files.readString(grammarMd);
@@ -268,43 +261,6 @@ public class GrammarValidationTest {
         }
         String abnf = m.group(1);
 
-        // Rewrite purl rule for PEG-safe parsing.
-        //
-        // Original (requires backtracking):
-        //   purl = scheme ":" *"/" type
-        //          [ 1*"/" namespace ] 1*"/" name *"/"
-        //          ...
-        //
-        // Fixed (PEG-safe): each namespace-segment must be followed by "/"
-        // so the parser commits only when a separator is present, leaving
-        // the last (name) segment without a trailing "/".
-        //   purl = scheme ":" *"/" type
-        //          1*"/" *( namespace-segment 1*"/" ) name *"/"
-        //          ...
-        abnf = replaceRule(abnf, "purl",
-            "purl                      = scheme \":\" *\"/\" type\n"
-            + "                           1*\"/\" *( namespace-segment 1*\"/\" ) name *\"/\"\n"
-            + "                           [ \"@\" version ] [ \"?\" qualifiers           ]\n"
-            + "                           [ \"#\" *\"/\" subpath      *\"/\" ]\n"
-            + "                           ; leading/trailing slashes allowed here and there");
-
-        // Rewrite purl-canonical rule for PEG-safe parsing.
-        //
-        // Original (requires backtracking):
-        //   purl-canonical = scheme ":" type-canonical
-        //                    [ "/" namespace-canonical ] "/" name
-        //                    ...
-        //
-        // Fixed (PEG-safe): same strategy as for purl.
-        //   purl-canonical = scheme ":" type-canonical
-        //                    "/" *( namespace-segment "/" ) name
-        //                    ...
-        abnf = replaceRule(abnf, "purl-canonical",
-            "purl-canonical            = scheme \":\"      type-canonical\n"
-            + "                           \"/\" *( namespace-segment \"/\" ) name\n"
-            + "                           [ \"@\" version ] [ \"?\" qualifiers-canonical ]\n"
-            + "                           [ \"#\"      subpath-canonical ]");
-
         // Append RFC 5234 Appendix B.1 core rules that the purl grammar
         // references but does not define.
         abnf = abnf
@@ -314,61 +270,6 @@ public class GrammarValidationTest {
             + "HEXDIG = DIGIT / \"A\" / \"B\" / \"C\" / \"D\" / \"E\" / \"F\"\n";
 
         return abnf;
-    }
-
-    /**
-     * Replaces the definition of a named ABNF rule (including its continuation
-     * lines) with {@code newDefinition}.
-     *
-     * <p>In the purl grammar, rule headers may have leading whitespace and are
-     * identified by the pattern: optional-whitespace + rule-name + optional-whitespace + "=".
-     * Continuation lines are those that do not match this rule-header pattern
-     * (i.e., blank lines, comment-only lines, or lines that start a different
-     * syntactic element).
-     */
-    private static String replaceRule(String abnf, String ruleName, String newDefinition) {
-        // Pattern that recognises any ABNF rule header line:
-        //   optional leading whitespace + identifier (letters/digits/hyphens) + spaces + "="
-        Pattern anyRuleHeader = Pattern.compile("^\\s*[A-Za-z][A-Za-z0-9-]*\\s*=");
-
-        // Pattern for the specific target rule header: same but locked to ruleName
-        Pattern targetRuleHeader = Pattern.compile(
-            "^\\s*" + Pattern.quote(ruleName) + "\\s*=");
-
-        String[] lines = abnf.split("\n", -1);
-        StringBuilder result = new StringBuilder();
-        boolean inTargetRule = false;
-        boolean replaced     = false;
-
-        for (String line : lines) {
-            if (!inTargetRule) {
-                if (targetRuleHeader.matcher(line).find() && !replaced) {
-                    // Start of the target rule: emit the replacement and begin skipping
-                    inTargetRule = true;
-                    replaced     = true;
-                    result.append(newDefinition).append("\n");
-                } else {
-                    result.append(line).append("\n");
-                }
-            } else {
-                // Inside the target rule's body: skip lines until a new rule header appears.
-                // Blank lines between rules are also skipped (they'll be re-emitted by the
-                // next rule's non-blank content, or simply dropped — APG doesn't care).
-                boolean isNewRuleHeader = anyRuleHeader.matcher(line).find();
-                if (isNewRuleHeader) {
-                    // A new rule starts: stop skipping and emit this line normally
-                    inTargetRule = false;
-                    result.append(line).append("\n");
-                }
-                // else: continuation / blank / comment line inside target rule → skip
-            }
-        }
-
-        if (!replaced) {
-            throw new IllegalStateException(
-                "Could not find rule '" + ruleName + "' in ABNF to replace");
-        }
-        return result.toString();
     }
 
     /**

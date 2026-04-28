@@ -11,15 +11,10 @@ defined in `docs/standard/grammar.md`, using
 2. RFC 5234 Appendix B.1 core rules (`ALPHA`, `DIGIT`, `HEXDIG`) are
    appended, because the purl grammar references them but does not define
    them (they are standard ABNF core rules).
-3. The `purl` and `purl-canonical` rules are rewritten to be
-   **PEG-safe** — APG uses PEG ordered-choice semantics which does not
-   backtrack after a successful optional match.  The rewrite replaces the
-   ambiguous `[ 1*"/" namespace ] 1*"/" name` pattern with the equivalent
-   `1*"/" *( namespace-segment 1*"/" ) name` which is unambiguous in PEG.
-4. The adapted grammar is fed to the APG generator (bundled in
+3. The adapted grammar is fed to the APG generator (bundled in
    `vendor/apg-java/`) which generates a `PurlGrammar.java` class.
-5. That class is compiled at runtime using the system Java compiler.
-6. JUnit 5 `@TestFactory` generates a dynamic test for every string value
+4. That class is compiled at runtime using the system Java compiler.
+5. JUnit 5 `@TestFactory` generates a dynamic test for every string value
    found at `$.tests[].input` and `$.tests[].expected_output` across all
    `tests/**/*.json` files.
 
