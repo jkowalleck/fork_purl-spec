@@ -129,13 +129,17 @@ public class AbnfGrammarTest {
             assumeTrue(!matches,
                     "Grammar does not enforce type-specific constraints; "
                     + "this input is type-specifically invalid but grammar-valid: " + testId);
-            // Grammar rejected it: coincidentally correct – pass without explicit assertion.
+            // Grammar rejected it: coincidentally correct – verify rejection.
+            assertFalse(matches,
+                    "Grammar should have rejected input '" + value + "' for test: " + testId);
         } else {
             // Grammar should accept valid purls; skip (don't fail) if grammar is stricter.
             assumeTrue(matches,
                     "Grammar is stricter than the purl spec for this input form "
                     + "(known grammar limitation): " + testId);
-            // Grammar accepted it – pass.
+            // Grammar accepted it – verify acceptance.
+            assertTrue(matches,
+                    "Grammar should have accepted input '" + value + "' for test: " + testId);
         }
     }
 
