@@ -36,6 +36,12 @@ import static org.junit.jupiter.api.DynamicTest.dynamicTest;
  *   <li>{@code purl-canonical} – used to validate {@code $.tests[].expected_output} values</li>
  * </ul>
  *
+ * <p>Only the structural specification test suite ({@code tests/spec/}) is
+ * used as input. Type-specific test suites ({@code tests/types/}) are
+ * deliberately excluded because their {@code expected_failure} flags reflect
+ * type-level rules (e.g. "swift requires a namespace") that are above the ABNF
+ * grammar level; including them would cause incorrect grammar failures.
+ *
  * <p>Expected-failure semantics (per spec):
  * <ul>
  *   <li>If {@code expected_failure == true} the {@code input} validation must <em>fail</em>.</li>
@@ -214,35 +220,52 @@ class GrammarValidationTest {
         return count == 1 ? baseName : baseName + "." + count;
     }
 
-    /** Walks {@code tests/} and returns metadata + parsed test-case arrays. */
+    /**
+     * Walks the grammar-relevant JSON test suite directories and returns
+     * metadata + parsed test-case arrays.
+     *
+     * <p>Only {@code tests/spec/} is scanned. {@code tests/types/} is
+     * intentionally excluded because type test suites validate type-specific
+     * rules (e.g. "swift requires a namespace") that lie above the ABNF grammar
+     * level; mixing them in would cause spurious grammar failures.
+     */
     private List<TestSuiteEntry> loadTestSuites() throws IOException {
         Path testsDir = repoRoot.resolve("tests");
+        // Directories inside tests/ that contain grammar-level JSON test suites.
+        List<Path> scanRoots = new ArrayList<>();
+        scanRoots.add(testsDir.resolve("spec"));
+
         ObjectMapper mapper = new ObjectMapper();
         List<TestSuiteEntry> entries = new ArrayList<>();
 
-        try (Stream<Path> walk = Files.walk(testsDir)) {
-            List<Path> jsonFiles = walk
-                    .filter(p -> p.toString().endsWith(".json"))
-                    .sorted()
-                    .collect(Collectors.toList());
+        for (Path scanRoot : scanRoots) {
+            if (!Files.isDirectory(scanRoot)) {
+                continue;
+            }
+            try (Stream<Path> walk = Files.walk(scanRoot)) {
+                List<Path> jsonFiles = walk
+                        .filter(p -> p.toString().endsWith(".json"))
+                        .sorted()
+                        .collect(Collectors.toList());
 
-            for (Path jsonFile : jsonFiles) {
-                // Determine folder (immediate child of tests/) and file base name.
-                Path relative = testsDir.relativize(jsonFile);
-                String folder = relative.getNameCount() > 1
-                        ? relative.getName(0).toString()
-                        : "";
-                String fileName = jsonFile.getFileName().toString();
-                String fileBaseName = fileName.endsWith(".json")
-                        ? fileName.substring(0, fileName.length() - 5)
-                        : fileName;
+                for (Path jsonFile : jsonFiles) {
+                    // Determine folder (immediate child of tests/) and file base name.
+                    Path relative = testsDir.relativize(jsonFile);
+                    String folder = relative.getNameCount() > 1
+                            ? relative.getName(0).toString()
+                            : "";
+                    String fileName = jsonFile.getFileName().toString();
+                    String fileBaseName = fileName.endsWith(".json")
+                            ? fileName.substring(0, fileName.length() - 5)
+                            : fileName;
 
-                JsonNode root = mapper.readTree(jsonFile.toFile());
-                JsonNode testsNode = root.get("tests");
-                if (testsNode == null || !testsNode.isArray()) {
-                    continue;
+                    JsonNode root = mapper.readTree(jsonFile.toFile());
+                    JsonNode testsNode = root.get("tests");
+                    if (testsNode == null || !testsNode.isArray()) {
+                        continue;
+                    }
+                    entries.add(new TestSuiteEntry(folder, fileBaseName, testsNode));
                 }
-                entries.add(new TestSuiteEntry(folder, fileBaseName, testsNode));
             }
         }
         return entries;

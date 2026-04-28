@@ -5,7 +5,7 @@ using [net.siisise:softlib-abnf][softlib-abnf] (a Java RFC 5234 ABNF parser).
 
 ## What it does
 
-For every JSON file under [`tests/`][tests]:
+For every JSON file under [`tests/spec/`][tests-spec]:
 
 | Check | Start rule | When run |
 |-------|-----------|----------|
@@ -15,6 +15,13 @@ For every JSON file under [`tests/`][tests]:
 * **`expected_failure: true`** → the `input` value must *not* match the rule.
 * **`expected_failure: false / absent`** → the `input` value must match the rule.
 * Non-string `input` / `expected_output` values are skipped silently.
+
+> **Why only `tests/spec/`?**  
+> `tests/types/` contains type-specific test suites whose `expected_failure`
+> flags reflect rules above the grammar level (e.g. "swift requires a
+> namespace", or "chrome-extension name must be 32 lowercase hex chars").
+> The ABNF grammar itself has no knowledge of such type constraints, so
+> including those suites would produce incorrect grammar failures.
 
 Test names follow the pattern:
 
@@ -48,4 +55,5 @@ test data.
 
 [grammar]: ../../../../docs/standard/grammar.md
 [tests]: ../../../
+[tests-spec]: ../../../spec/
 [softlib-abnf]: https://github.com/okomeki/SoftLibABNF
