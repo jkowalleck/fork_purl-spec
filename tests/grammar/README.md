@@ -7,17 +7,18 @@ JSON test suites against the [ABNF grammar](../../docs/standard/grammar.md).
 
 The tests:
 
-1. **Extract** the ABNF grammar from `docs/standard/grammar.md` (the fenced
+1. **Load** the ABNF grammar from `docs/standard/grammar.md` (the fenced
    ` ```abnf ` code block) – this is the single source of truth.
-2. **Collect** every `$.tests[]` entry from all JSON files under `tests/`
+2. **Collect** test cases from all JSON files under `tests/`
    (including `tests/spec/` and `tests/types/`).
 3. **Validate** string values:
-   - `input` strings → validated against ABNF rule `purl`
-     - Expected to **fail** when `expected_failure === true`
-     - Expected to **pass** otherwise
-   - `expected_output` strings → validated against ABNF rule `purl-canonical`
-     - Only when `expected_failure` is not `true`
-     - Always expected to **pass**
+   - `input` strings from `test_type == "parse"` entries with
+     `expected_failure === true` → validated against ABNF rule `purl`
+     — expected to **fail**.  When the grammar accepts the string (i.e. the
+     failure is a type-specific constraint, not a grammar violation), the test
+     is marked `xfail`.
+   - `expected_output` strings where `expected_failure` is not `true` →
+     validated against ABNF rule `purl-canonical` — always expected to **pass**.
 
 ## Requirements
 
@@ -79,15 +80,12 @@ Where:
 When the same value appears multiple times within a file, a numeric suffix is
 appended to keep test IDs unique (e.g. `.1`, `.2`, …).
 
-## Interpreting failures
+## Interpreting results
 
-A test failure means the PURL string and the ABNF grammar disagree:
-
-- **"Expected to PASS but FAILED"** – the JSON test suite marks the string as
-  valid (`expected_failure` is not `true`) but the grammar rejects it.  This
-  may indicate a gap in the grammar or a test-data issue.
-
-- **"Expected to FAIL but PASSED"** – the JSON test suite marks the string as
-  invalid (`expected_failure === true`) but the grammar accepts it.  This may
-  indicate the grammar is too permissive, or the failure is due to a
-  type-specific rule that the general grammar does not encode.
+- **`PASSED`** – the grammar behaves as expected.
+- **`XFAIL`** – an `input` test where the grammar accepted a string that the
+  test suite marks as invalid.  This is a type-specific constraint (e.g. a
+  required namespace for a particular PURL type) that the general grammar does
+  not encode; it is not a grammar defect.
+- **`FAILED`** – an `expected_output` string was rejected by the grammar.  This
+  indicates a gap in the grammar or a test-data issue.

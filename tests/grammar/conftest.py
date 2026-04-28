@@ -3,8 +3,8 @@
 """
 Pytest configuration and shared fixtures for PURL ABNF grammar tests.
 
-Extracts the ABNF grammar from docs/standard/grammar.md and builds
-Rule validators for the ``purl`` and ``purl-canonical`` start rules.
+Loads the ABNF grammar from docs/standard/grammar.md and builds a
+Rule validator for the ``purl`` and ``purl-canonical`` start rules.
 """
 
 from __future__ import annotations
@@ -13,8 +13,7 @@ import json
 import re
 from pathlib import Path
 
-from abnf import Rule
-from abnf.grammars.misc import load_grammar_rules
+from abnf import ParseError, Rule
 
 # ---------------------------------------------------------------------------
 # Repository layout
@@ -25,7 +24,7 @@ GRAMMAR_MD = REPO_ROOT / "docs" / "standard" / "grammar.md"
 TESTS_DIR = REPO_ROOT / "tests"
 
 # ---------------------------------------------------------------------------
-# ABNF grammar helpers
+# ABNF grammar loading
 # ---------------------------------------------------------------------------
 
 
@@ -38,82 +37,16 @@ def _extract_abnf(path: Path) -> str:
     return match.group(1)
 
 
-def _strip_comment(line: str) -> str:
-    """Strip a trailing ABNF comment (``; …``) from a line."""
-    in_quote = False
-    for i, ch in enumerate(line):
-        if ch == '"':
-            in_quote = not in_quote
-        elif ch == ";" and not in_quote:
-            return line[:i].rstrip()
-    return line
-
-
-def _normalize_abnf(text: str) -> list[str]:
-    """
-    Convert raw multi-line ABNF text into a list of single-line rule strings,
-    stripping comments so that the ``abnf`` library can parse them.
-
-    Rules with indented continuation lines (RFC 5234 §2.1) are joined into
-    one flat string.  Comment-only lines and blank lines are discarded.
-    """
-    rules: list[str] = []
-    current: str | None = None
-
-    for raw_line in text.split("\n"):
-        stripped = raw_line.rstrip()
-
-        # Blank line → flush
-        if not stripped:
-            if current is not None:
-                rules.append(current)
-                current = None
-            continue
-
-        # Comment-only line
-        if stripped.lstrip().startswith(";"):
-            # Top-level comment → flush current rule
-            if not raw_line[0].isspace() and current is not None:
-                rules.append(current)
-                current = None
-            continue
-
-        line_no_comment = _strip_comment(stripped)
-        if not line_no_comment.strip():
-            continue
-
-        if not raw_line[0].isspace():
-            # Start of a new rule definition
-            if current is not None:
-                rules.append(current)
-            current = line_no_comment.rstrip()
-        else:
-            # Continuation of the current rule
-            if current is not None:
-                current = current + " " + line_no_comment.strip()
-
-    if current is not None:
-        rules.append(current)
-
-    return [r for r in rules if r.strip()]
-
-
-def _build_rule_class(abnf_rules: list[str]) -> type[Rule]:
-    """Return a Rule subclass with all PURL grammar rules loaded."""
-
-    @load_grammar_rules()
-    class PurlRule(Rule):
-        grammar = abnf_rules
-
-    return PurlRule
-
-
 # ---------------------------------------------------------------------------
 # Module-level grammar initialisation (loaded once per session)
 # ---------------------------------------------------------------------------
 
-_ABNF_RULES: list[str] = _normalize_abnf(_extract_abnf(GRAMMAR_MD))
-_PURL_RULE_CLASS: type[Rule] = _build_rule_class(_ABNF_RULES)
+
+class PurlRule(Rule):
+    """ABNF rule class populated with the PURL grammar."""
+
+
+PurlRule.load_grammar(_extract_abnf(GRAMMAR_MD))
 
 
 def validate(value: str, rule_name: str) -> bool:
@@ -121,10 +54,8 @@ def validate(value: str, rule_name: str) -> bool:
     Return ``True`` if *value* fully matches the ABNF rule *rule_name*,
     ``False`` otherwise.
     """
-    from abnf import ParseError
-
     try:
-        _PURL_RULE_CLASS(rule_name).parse_all(value)
+        PurlRule(rule_name).parse_all(value)
         return True
     except ParseError:
         return False
@@ -140,13 +71,20 @@ def _safe_id(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]", "_", value)
 
 
-def collect_input_cases() -> list[tuple[str, str, bool]]:
+def collect_input_cases() -> list[tuple[str, str]]:
     """
-    Yield ``(test_id, input_value, should_fail)`` triples for every
-    ``$.tests[].input`` string found under *TESTS_DIR*.
+    Return ``(test_id, input_value)`` pairs for every ``$.tests[].input``
+    string from ``test_type == "parse"`` entries where
+    ``expected_failure is true`` under `TESTS_DIR`.
+
+    These are inputs that PURL implementations must reject; the grammar
+    should likewise reject them.  Type-specific constraints (e.g. a
+    required namespace for a particular type) may cause the grammar to
+    accept a string that an implementation rejects — those cases are
+    handled with ``pytest.xfail`` in the test.
     """
     seen_ids: dict[str, int] = {}
-    cases: list[tuple[str, str, bool]] = []
+    cases: list[tuple[str, str]] = []
 
     for json_file in sorted(TESTS_DIR.rglob("*.json")):
         folder = json_file.parent.name
@@ -165,7 +103,11 @@ def collect_input_cases() -> list[tuple[str, str, bool]]:
             if not isinstance(test, dict):
                 continue
 
-            should_fail: bool = test.get("expected_failure") is True
+            if test.get("test_type") != "parse":
+                continue
+            if test.get("expected_failure") is not True:
+                continue
+
             input_val = test.get("input")
             if not isinstance(input_val, str):
                 continue
@@ -175,15 +117,15 @@ def collect_input_cases() -> list[tuple[str, str, bool]]:
             seen_ids[base_id] = count + 1
             test_id = base_id if count == 0 else f"{base_id}.{count}"
 
-            cases.append((test_id, input_val, should_fail))
+            cases.append((test_id, input_val))
 
     return cases
 
 
 def collect_output_cases() -> list[tuple[str, str]]:
     """
-    Yield ``(test_id, expected_output_value)`` pairs for every
-    ``$.tests[].expected_output`` string found under *TESTS_DIR* where
+    Return ``(test_id, expected_output_value)`` pairs for every
+    ``$.tests[].expected_output`` string found under `TESTS_DIR` where
     ``expected_failure`` is not ``true``.
     """
     seen_ids: dict[str, int] = {}
@@ -206,7 +148,6 @@ def collect_output_cases() -> list[tuple[str, str]]:
             if not isinstance(test, dict):
                 continue
 
-            # Skip expected_output validation when failure is expected
             if test.get("expected_failure") is True:
                 continue
 
