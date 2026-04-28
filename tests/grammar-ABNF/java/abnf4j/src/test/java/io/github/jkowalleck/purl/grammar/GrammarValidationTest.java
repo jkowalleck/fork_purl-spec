@@ -72,13 +72,8 @@ class GrammarValidationTest {
 
         String abnfText = extractAbnfBlock(mdContent);
 
-        // RFC 5234 ABNF requires CRLF line endings (comments end with CRLF).
-        // Also ensure the text ends with CRLF so the last rule's trailing comment
-        // can be parsed as a valid c-nl terminator.
+        // RFC 5234 ABNF requires CRLF line endings (comments are terminated by CRLF).
         String abnfCrlf = abnfText.replace("\r\n", "\n").replace("\n", "\r\n");
-        if (!abnfCrlf.endsWith("\r\n")) {
-            abnfCrlf += "\r\n";
-        }
 
         // Build a registry that inherits RFC 5234 core rules (ALPHA, DIGIT, HEXDIG, …).
         grammarReg = new ABNFReg(ABNF5234.BASE);
