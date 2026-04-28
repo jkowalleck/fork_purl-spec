@@ -43,11 +43,14 @@ const GRAMMAR_MD = path.join(REPO_ROOT, 'docs', 'standard', 'grammar.md');
 const TESTS_DIR = path.join(REPO_ROOT, 'tests');
 
 // ---------------------------------------------------------------------------
-// RFC 5234 Appendix B.1 core rules used by the PURL grammar
+// RFC 5234 Appendix B.1 core rules used by the PURL grammar.
+// ALPHA is defined here in terms of the grammar's own UPRALPHA / LOWALPHA
+// rules (both declared in grammar.md).  DIGIT and HEXDIG are not defined
+// in grammar.md so they are provided here verbatim.
 // ---------------------------------------------------------------------------
 
 const RFC5234_CORE = `
-ALPHA  =  %x41-5A / %x61-7A
+ALPHA  =  UPRALPHA / LOWALPHA
 DIGIT  =  %x30-39
 HEXDIG =  DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
 `;
