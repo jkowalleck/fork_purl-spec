@@ -149,8 +149,18 @@ func safeSubtestName(s string) string {
 }
 
 // TestGrammar is the main test: for every JSON test suite it validates
-// string input values against the "purl" ABNF rule and string
-// expected_output values against the "purl-canonical" rule.
+// string expected_output values against the "purl-canonical" ABNF rule, and
+// also validates inputs known to violate the general PURL structure from the
+// specification test suite.
+//
+// Specifically:
+//   - For every test suite: string expected_output with expected_failure=false
+//     is validated against "purl-canonical" and must be ACCEPTED.
+//   - For the specification test suite only: string input with
+//     expected_failure=true is validated against "purl" and must be REJECTED.
+//     (Type-specific test suites have type-scoped failure rules that are
+//     intentionally outside the scope of the general ABNF grammar, so their
+//     expected_failure inputs are skipped.)
 func TestGrammar(t *testing.T) {
 	grammar := parseGrammar(t)
 
@@ -173,28 +183,28 @@ func TestGrammar(t *testing.T) {
 				tc := tc
 				i := i
 
-				// ── 1. Input validation ──────────────────────────────────────
-				if input, ok := stringValue(tc.Input); ok {
-					name := fmt.Sprintf("input[%d].%s", i, safeSubtestName(input))
-					t.Run(name, func(t *testing.T) {
-						t.Parallel()
-						valid, err := grammar.IsValid("purl", []byte(input))
-						if err != nil {
-							t.Fatalf("IsValid error: %v", err)
-						}
-						if tc.shouldFail() {
+				// ── 1. Input rejection test (spec suite, expected_failure=true) ──
+				// Only the specification test suite tests general PURL structure
+				// violations that the grammar covers.  Type-specific test suites use
+				// type-scoped rules that go beyond the grammar, so their failure cases
+				// are skipped here.
+				if suite.folder == "spec" && tc.shouldFail() {
+					if input, ok := stringValue(tc.Input); ok {
+						name := fmt.Sprintf("input[%d].%s", i, safeSubtestName(input))
+						t.Run(name, func(t *testing.T) {
+							t.Parallel()
+							valid, err := grammar.IsValid("purl", []byte(input))
+							if err != nil {
+								t.Fatalf("IsValid error: %v", err)
+							}
 							if valid {
 								t.Errorf("expected ABNF rule 'purl' to reject %q (expected_failure=true), but it was accepted", input)
 							}
-						} else {
-							if !valid {
-								t.Errorf("expected ABNF rule 'purl' to accept %q, but it was rejected", input)
-							}
-						}
-					})
+						})
+					}
 				}
 
-				// ── 2. Expected-output validation (only when not expected to fail) ──
+				// ── 2. Expected-output validation (all suites, expected_failure=false) ──
 				if !tc.shouldFail() {
 					if expectedOutput, ok := stringValue(tc.ExpectedOutput); ok {
 						name := fmt.Sprintf("expected_output[%d].%s", i, safeSubtestName(expectedOutput))

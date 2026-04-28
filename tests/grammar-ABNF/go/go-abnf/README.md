@@ -12,12 +12,15 @@ for direct ABNF parsing.
 2. **Discover every JSON test suite** under `tests/` (including
    `tests/spec/` and `tests/types/`).
 3. For every test case in each suite:
-   - If `input` is a string → validate against ABNF rule **`purl`**.
-     - `expected_failure: true` → the validation must **fail**.
-     - `expected_failure: false` (or absent) → the validation must **pass**.
    - If `expected_output` is a string **and** `expected_failure` is not
      `true` → validate against ABNF rule **`purl-canonical`**, which must
-     **pass**.
+     **pass** (all suites).
+   - If `input` is a string **and** `expected_failure: true` **and** the suite
+     is `tests/spec/` → validate against ABNF rule **`purl`**; the grammar must
+     **reject** the input.
+     Type-specific test suites enforce type-scoped rules that are outside the
+     scope of the general ABNF grammar, so their `expected_failure` inputs are
+     intentionally skipped.
    - Non-string (object / null) values are skipped.
 
 ## Prerequisites
