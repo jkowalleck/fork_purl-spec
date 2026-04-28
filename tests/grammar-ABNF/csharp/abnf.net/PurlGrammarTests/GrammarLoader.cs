@@ -1,11 +1,10 @@
 using Abnf;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace PurlGrammarTests;
 
 /// <summary>
-/// Extracts, normalises, and parses the ABNF grammar from docs/standard/grammar.md.
+/// Extracts and parses the ABNF grammar from docs/standard/grammar.md.
 /// </summary>
 internal static class GrammarLoader
 {
@@ -49,12 +48,12 @@ internal static class GrammarLoader
 
     private static Grammar Load()
     {
-        var repoRoot = FindRepoRoot();
+        var repoRoot = RepoRoot.Find();
         var grammarMdPath = Path.Combine(repoRoot, "docs", "standard", "grammar.md");
         var grammarMd = File.ReadAllText(grammarMdPath);
 
         var abnfRaw = ExtractAbnfBlock(grammarMd);
-        var abnfNorm = Normalize(abnfRaw);
+        var abnfNorm = RemoveCommentOnlyContinuations(abnfRaw);
         var abnfFinal = ApplyPegFixes(abnfNorm) + "\n" + CoreRules;
 
         return Abnf.Abnf.Parse(abnfFinal);
@@ -74,56 +73,22 @@ internal static class GrammarLoader
     // ── Normalisation ────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Joins continuation lines, strips inline ABNF comments, and collapses
-    /// comment-only continuation lines so that the result is a flat list of
-    /// single-line rules suitable for Abnf.Net.
+    /// Removes comment-only ABNF continuation lines (lines that begin with
+    /// whitespace and contain only a <c>;</c> comment).  Abnf.Net handles
+    /// inline comments and real multi-line continuation rules natively, but
+    /// chokes on continuation lines whose only content is a comment.
     /// </summary>
-    private static string Normalize(string abnfText)
+    private static string RemoveCommentOnlyContinuations(string abnfText)
     {
-        var lines = abnfText.Split('\n');
-        var result = new List<string>();
-        var current = new StringBuilder();
-
-        foreach (var rawLine in lines)
-        {
-            var line = rawLine.TrimEnd('\r', '\n');
-            bool isContinuation = line.Length > 0 && (line[0] == ' ' || line[0] == '\t');
-            string stripped = StripInlineComment(line).TrimEnd();
-
-            if (isContinuation)
+        var lines = abnfText
+            .Split('\n')
+            .Where(line =>
             {
-                // Comment-only continuation → skip (avoids creating a spurious blank break)
-                var content = stripped.TrimStart();
-                if (content.Length > 0)
-                    current.Append(' ').Append(content);
-            }
-            else if (string.IsNullOrWhiteSpace(stripped))
-            {
-                if (current.Length > 0) { result.Add(current.ToString()); current.Clear(); }
-                result.Add(string.Empty);
-            }
-            else
-            {
-                if (current.Length > 0) { result.Add(current.ToString()); current.Clear(); }
-                current.Append(stripped);
-            }
-        }
-
-        if (current.Length > 0) result.Add(current.ToString());
-        return string.Join("\n", result);
-    }
-
-    /// <summary>Strips ABNF inline comment (text after ";" outside a quoted string).</summary>
-    private static string StripInlineComment(string line)
-    {
-        bool inQuote = false;
-        for (int i = 0; i < line.Length; i++)
-        {
-            char c = line[i];
-            if (c == '"') inQuote = !inQuote;
-            else if (c == ';' && !inQuote) return line[..i].TrimEnd();
-        }
-        return line;
+                if (line.Length == 0) return true;
+                bool isContinuation = line[0] == ' ' || line[0] == '\t';
+                return !isContinuation || !line.TrimStart().StartsWith(';');
+            });
+        return string.Join("\n", lines);
     }
 
     // ── PEG compatibility fixes ──────────────────────────────────────────────
@@ -151,28 +116,5 @@ internal static class GrammarLoader
             "$1 \"/\" purl-canonical--ns-name");
 
         return abnf + "\n" + PegFixRules;
-    }
-
-    // ── Repo-root discovery ──────────────────────────────────────────────────
-
-    private static string FindRepoRoot()
-    {
-        // Allow CI / local overrides
-        var envRoot = Environment.GetEnvironmentVariable("PURL_SPEC_REPO_ROOT");
-        if (!string.IsNullOrWhiteSpace(envRoot) && Directory.Exists(envRoot))
-            return envRoot;
-
-        // Walk up from the test-assembly directory
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "docs", "standard", "grammar.md")))
-                return dir.FullName;
-            dir = dir.Parent;
-        }
-
-        throw new InvalidOperationException(
-            "Cannot locate repository root (docs/standard/grammar.md not found). " +
-            "Set the PURL_SPEC_REPO_ROOT environment variable.");
     }
 }

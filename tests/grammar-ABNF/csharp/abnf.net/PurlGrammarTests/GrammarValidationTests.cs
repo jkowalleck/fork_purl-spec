@@ -70,8 +70,7 @@ public sealed class GrammarValidationTests
     /// <param name="kind">"input" or "expected_output"</param>
     private static IEnumerable<TestCaseData> BuildTestCases(string kind)
     {
-        var repoRoot = FindRepoRoot();
-        var testsuiteRoot = Path.Combine(repoRoot, "tests");
+        var testsuiteRoot = Path.Combine(RepoRoot.Find(), "tests");
 
         foreach (var jsonFile in Directory.EnumerateFiles(
                      testsuiteRoot, "*.json", SearchOption.AllDirectories))
@@ -131,23 +130,6 @@ public sealed class GrammarValidationTests
         }
     }
 
-    // ── Repo-root discovery (mirrors GrammarLoader) ──────────────────────────
-
-    private static string FindRepoRoot()
-    {
-        var envRoot = Environment.GetEnvironmentVariable("PURL_SPEC_REPO_ROOT");
-        if (!string.IsNullOrWhiteSpace(envRoot) && Directory.Exists(envRoot))
-            return envRoot;
-
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "docs", "standard", "grammar.md")))
-                return dir.FullName;
-            dir = dir.Parent;
-        }
-
-        throw new InvalidOperationException(
-            "Cannot locate repository root. Set the PURL_SPEC_REPO_ROOT environment variable.");
-    }
+    // ── Repo-root discovery (shared via RepoRoot helper) ─────────────────────
 }
+
