@@ -31,40 +31,8 @@ from pathlib import Path
 from typing import Generator
 
 import pytest
-from abnf.parser import Node
 from abnf.parser import ParseError
 from abnf.parser import Rule as _Rule
-import abnf.parser as _ap
-
-# ---------------------------------------------------------------------------
-# Monkey-patch: fix abnf library handling of comment-only rule continuations
-# ---------------------------------------------------------------------------
-# The PURL grammar has one rule (PERM-ESCAPED-2D-2F) whose body starts with
-# comment lines before the first actual element:
-#
-#   PERM-ESCAPED-2D-2F = ; except punctuation: "-"   (2D)
-#                        ; except punctuation: "."   (2E)
-#                        %x32 "F"   ; 2F
-#
-# The stock ABNFGrammarNodeVisitor.visit_defined_as returns node.value.strip()
-# which, for that rule, includes the trailing comment text, so the result is
-# not equal to "=" and the library raises AttributeError instead of loading
-# the rule correctly.  The fix below extracts only the operator ("=" or "=/").
-# ---------------------------------------------------------------------------
-
-
-@staticmethod  # type: ignore[misc]  # mypy: assigning staticmethod to instance method via monkey-patch
-def _visit_defined_as(node: Node) -> str:
-    """Return the defined-as operator (``"="`` or ``"=/"``), ignoring trailing comments."""
-    value = node.value.strip()
-    if value.startswith("=/"):
-        return "=/"
-    if value.startswith("="):
-        return "="
-    return value  # pragma: no cover – should never happen for valid ABNF
-
-
-_ap.ABNFGrammarNodeVisitor.visit_defined_as = _visit_defined_as
 
 # ---------------------------------------------------------------------------
 # Locate repository root, grammar source, and test suites
