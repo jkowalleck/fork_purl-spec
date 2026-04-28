@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: MIT
+# ABNF grammar validation tests — Rust ecosystem, static-regular-grammar crate
+name: "ABNF TEST (Rust / static-regular-grammar)"
+
+on:
+  push:
+    branches:
+      - "spec/grammar-ABNF"
+      - "tests/grammar-ABNF/**"
+    paths:
+      - "docs/standard/grammar.md"
+      - "tests/**/*.json"
+      - "tests/grammar/rust/static_regular_grammar/**"
+      - ".github/workflows/tests-grammar-abnf-rust-static-regular-grammar.yml"
+  pull_request:
+    branches:
+      - "spec/grammar-ABNF"
+    paths:
+      - "docs/standard/grammar.md"
+      - "tests/**/*.json"
+      - "tests/grammar/rust/static_regular_grammar/**"
+      - ".github/workflows/tests-grammar-abnf-rust-static-regular-grammar.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: "ABNF grammar validation (Rust / static-regular-grammar)"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: tests/grammar/rust/static_regular_grammar
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Build
+        run: cargo build --locked
+
+      - name: Run grammar validation tests
+        run: cargo test --locked
