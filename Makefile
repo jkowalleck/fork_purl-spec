@@ -28,6 +28,7 @@ virtualenv:
 conf: virtualenv
 	@echo "-> Install dependencies"
 	@${ACTIVATE} pip install -r etc/scripts/requirements.txt
+	@${ACTIVATE} pip install -r tests/grammar-ABNF/python/requirements.txt
 
 formatcode:
 	@echo "-> Run Ruff format"
@@ -84,5 +85,9 @@ gencode:
 gendocs:
 	@${ACTIVATE} python etc/scripts/generate_index_and_docs.py
 
+test-grammar:
+	@echo "-> Run ABNF grammar validation tests"
+	@${ACTIVATE} python -m pytest tests/grammar-ABNF/python/ -v
 
-.PHONY: virtualenv conf formatcode formatjson format checkcode checkjson check clean gencode gendocs
+
+.PHONY: virtualenv conf formatcode formatjson format checkcode checkjson check clean gencode gendocs test-grammar

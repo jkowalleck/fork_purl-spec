@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) the purl authors
+# Visit https://github.com/package-url/purl-spec and https://packageurl.org for support
+
+name: ABNF TEST
+
+on:
+  push:
+    paths:
+      - "docs/standard/grammar.md"
+      - "tests/**/*.json"
+      - "tests/grammar-ABNF/python/**"
+      - ".github/workflows/abnf-test.yml"  # this file
+  pull_request:
+    paths:
+      - "docs/standard/grammar.md"
+      - "tests/**/*.json"
+      - "tests/grammar-ABNF/python/**"
+      - ".github/workflows/abnf-test.yml"  # this file
+  workflow_dispatch:
+
+# All permissions should be specified at the job level
+permissions: {}
+
+jobs:
+  abnf-test-python:
+    name: ABNF grammar tests (Python)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install test dependencies
+        run: pip install -r tests/grammar-ABNF/python/requirements.txt
+
+      - name: Run ABNF grammar validation tests
+        run: python -m pytest tests/grammar-ABNF/python/ -v
