@@ -1,0 +1,20 @@
+[package]
+name = "purl-grammar-abnf-tests"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "ABNF grammar validation tests for PURL strings (Rust / static-regular-grammar)"
+
+[lib]
+
+[dependencies]
+static-regular-grammar = "2"
+
+[dev-dependencies]
+libtest-mimic = "0.8"
+serde_json = "1"
+
+[[test]]
+name = "grammar"
+path = "tests/grammar.rs"
+harness = false

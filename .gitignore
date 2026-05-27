@@ -2,3 +2,6 @@
 /venv/
 /.python-version
 .ruff_cache/
+
+# Rust build artifacts for grammar tests
+/tests/grammar/rust/static_regular_grammar/target/
