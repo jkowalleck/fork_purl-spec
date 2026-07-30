@@ -2,3 +2,5 @@
 /venv/
 /.python-version
 .ruff_cache/
+# Maven build output
+target/

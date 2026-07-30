@@ -1,0 +1,48 @@
+name: ABNF TEST Java
+
+on:
+  push:
+    paths:
+      - "docs/standard/grammar.md"
+      - "tests/**/*.json"
+      - "tests/grammar-ABNF/java/abnf-parser/**"
+      - ".github/workflows/test-grammar-abnf-java.yml"
+  pull_request:
+    paths:
+      - "docs/standard/grammar.md"
+      - "tests/**/*.json"
+      - "tests/grammar-ABNF/java/abnf-parser/**"
+      - ".github/workflows/test-grammar-abnf-java.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  test-grammar-abnf-java:
+    name: Run ABNF grammar validation tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run ABNF grammar validation tests
+        working-directory: tests/grammar-ABNF/java/abnf-parser
+        run: mvn test
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: tests/grammar-ABNF/java/abnf-parser/target/surefire-reports/
+          if-no-files-found: ignore

@@ -71,6 +71,9 @@ subpath-sc                = PERM-ALPHANUM
 
 UPRALPHA    = %x41-5A    ; A-Z
 LOWALPHA    = %x61-7A    ; a-z
+ALPHA       = UPRALPHA / LOWALPHA
+DIGIT       = %x30-39    ; 0-9
+HEXDIG      = DIGIT / %x41-46 / %x61-66    ; 0-9A-F (uppercase) or 0-9a-f (lowercase)
 
 PCT-ENCODED = PERM-ALPHANUM
             / PERM-PUNCTUATION
