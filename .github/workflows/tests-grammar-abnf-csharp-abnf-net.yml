@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: MIT
+# ABNF grammar validation tests — C#/.NET ecosystem, NuGet package Abnf.Net
+name: "ABNF TEST C#/.NET / Abnf.Net"
+
+on:
+  push:
+    branches:
+      - "spec/grammar-ABNF"
+      - "tests/grammar-ABNF/**"
+    paths:
+      - "docs/standard/grammar.md"
+      - "tests/**/*.json"
+      - "tests/grammar-ABNF/csharp/abnf.net/**"
+      - ".github/workflows/tests-grammar-abnf-csharp-abnf-net.yml"
+  pull_request:
+    branches:
+      - "spec/grammar-ABNF"
+    paths:
+      - "docs/standard/grammar.md"
+      - "tests/**/*.json"
+      - "tests/grammar-ABNF/csharp/abnf.net/**"
+      - ".github/workflows/tests-grammar-abnf-csharp-abnf-net.yml"
+
+jobs:
+  test:
+    name: "ABNF TEST C#/.NET / Abnf.Net"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: tests/grammar-ABNF/csharp/abnf.net/PurlGrammarTests
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore
+
+      - name: Run grammar validation tests
+        run: dotnet test --no-build --logger "console;verbosity=normal"
