@@ -1,0 +1,28 @@
+name: ABNF TEST
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  validate-grammar:
+    name: Validate PURL grammar against JSON test suites
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: maven
+
+      - name: Run grammar validation tests
+        working-directory: tests/grammar-ABNF/java/abnf4j
+        run: mvn --batch-mode test
