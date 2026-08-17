@@ -1,0 +1,49 @@
+name: "ABNF TEST C++/abnf-cpp"
+
+# Trigger automatically on push and pull_request when relevant files change,
+# and allow manual runs via workflow_dispatch.
+on:
+  push:
+    paths:
+      - "docs/standard/grammar.md"
+      - "tests/**/*.json"
+      - "tests/grammar-ABNF/cpp/abnf-cpp/**"
+      - ".github/workflows/test-grammar-abnf-cpp.yml"
+  pull_request:
+    paths:
+      - "docs/standard/grammar.md"
+      - "tests/**/*.json"
+      - "tests/grammar-ABNF/cpp/abnf-cpp/**"
+      - ".github/workflows/test-grammar-abnf-cpp.yml"
+  workflow_dispatch:
+
+# Minimal permissions — this job only reads the repository.
+permissions: {}
+
+jobs:
+  test-abnf-cpp:
+    name: "ABNF grammar tests (C++ / abnf-cpp)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y cmake nlohmann-json3-dev
+
+      - name: Configure (CMake)
+        run: |
+          cmake -B build tests/grammar-ABNF/cpp/abnf-cpp/ \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Run ABNF grammar tests
+        run: |
+          ./build/purl-grammar-tests \
+            docs/standard/grammar.md \
+            tests/
